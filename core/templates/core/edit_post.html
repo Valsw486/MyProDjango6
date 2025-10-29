@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4">Edit Post</h2>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="text" class="form-label">Post Content</label>
+                        <textarea name="text" id="text" class="form-control" rows="5"
+                                  placeholder="What's on your mind? (max 1000 characters)"
+                                  maxlength="1000" required>{{ form.text.value }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Image (optional)</label>
+                        {% if post.image %}
+                            <div class="mb-2">
+                                <p>Current image:</p>
+                                <img src="{{ post.image.url }}" class="img-fluid mb-2" alt="Current post image" style="max-height: 200px;">
+                            </div>
+                        {% endif %}
+                        <input type="file" name="image" id="image" class="form-control" accept="image/*">
+                    </div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary">Update Post</button>
+                        <a href="{% url 'home' %}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

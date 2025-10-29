@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">User Profile</h2>
+
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <div class="mb-3">
+                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center"
+                                 style="width: 150px; height: 150px;">
+                                <span class="h1 text-muted">{{ user.username|first|upper }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <table class="table">
+                            <tr>
+                                <th>Username:</th>
+                                <td>{{ user.username }}</td>
+                            </tr>
+                            <tr>
+                                <th>Email:</th>
+                                <td>{{ user.email }}</td>
+                            </tr>
+                            <tr>
+                                <th>Joined:</th>
+                                <td>{{ user.date_joined|date:"F d, Y" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Last Login:</th>
+                                <td>{{ user.last_login|date:"F d, Y H:i" }}</td>
+                            </tr>
+                        </table>
+
+                        <div class="mt-4">
+                            <a href="{% url 'home' %}" class="btn btn-primary">Back to Home</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -9,25 +9,33 @@ from .forms import PostForm, CommentForm
 
 
 def home(request):
-    # Если пользователь авторизован, показываем посты от подписок
+    """
+    Home page: shows posts from subscriptions (for logged-in users)
+    or all posts (for anonymous visitors). Also handles inline post creation.
+    """
     if request.user.is_authenticated:
-        # Получаем ID пользователей, на которых подписан текущий пользователь
-        subscriptions = Subscription.objects.filter(subscriber=request.user).values_list('target_id', flat=True)
-        # Добавляем посты самого пользователя
+        # IDs of users the current user is subscribed to
+        subscriptions = Subscription.objects.filter(
+            subscriber=request.user
+        ).values_list('target_id', flat=True)
+
+        # Include the user's own posts
         subscriptions_list = list(subscriptions) + [request.user.id]
-        posts = Post.objects.filter(author_id__in=subscriptions_list).order_by('-created_at')
+        posts = Post.objects.filter(
+            author_id__in=subscriptions_list
+        ).order_by('-created_at')
     else:
-        # Для неавторизованных показываем все посты
+        # Anonymous users see all posts
         posts = Post.objects.all().order_by('-created_at')
 
-    # Обработка создания поста
+    # Handle inline post creation
     if request.method == 'POST' and request.user.is_authenticated:
-        if 'text' in request.POST:  # Это форма поста
+        if 'text' in request.POST:
             text = request.POST.get('text')
             image = request.FILES.get('image')
 
             if text:
-                post = Post.objects.create(
+                Post.objects.create(
                     author=request.user,
                     text=text,
                     image=image
@@ -40,6 +48,7 @@ def home(request):
 
 @login_required
 def create_post(request):
+    """Create a new post via a dedicated form."""
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
@@ -55,6 +64,7 @@ def create_post(request):
 
 @login_required
 def edit_post(request, post_id):
+    """Edit an existing post. Only the author can edit."""
     post = get_object_or_404(Post, id=post_id)
 
     if post.author != request.user:
@@ -75,6 +85,7 @@ def edit_post(request, post_id):
 
 @login_required
 def delete_post(request, post_id):
+    """Delete a post. Only the author can delete."""
     post = get_object_or_404(Post, id=post_id)
 
     if post.author != request.user:
@@ -91,6 +102,7 @@ def delete_post(request, post_id):
 
 @login_required
 def add_comment(request, post_id):
+    """Add a comment to a post."""
     post = get_object_or_404(Post, id=post_id)
 
     if request.method == 'POST':
@@ -107,6 +119,7 @@ def add_comment(request, post_id):
 
 @login_required
 def delete_comment(request, comment_id):
+    """Delete a comment. Only the author can delete."""
     comment = get_object_or_404(Comment, id=comment_id)
 
     if comment.author != request.user:
@@ -122,6 +135,10 @@ def delete_comment(request, comment_id):
 
 @login_required
 def like_post(request, post_id):
+    """
+    Toggle a like on a post.
+    Returns JSON for AJAX requests, otherwise redirects back to home.
+    """
     post = get_object_or_404(Post, id=post_id)
 
     like, created = Like.objects.get_or_create(
@@ -146,6 +163,7 @@ def like_post(request, post_id):
 
 @login_required
 def subscribe(request, user_id):
+    """Subscribe to another user."""
     target_user = get_object_or_404(User, id=user_id)
 
     if target_user == request.user:
@@ -167,6 +185,7 @@ def subscribe(request, user_id):
 
 @login_required
 def unsubscribe(request, user_id):
+    """Unsubscribe from another user."""
     target_user = get_object_or_404(User, id=user_id)
 
     subscription = Subscription.objects.filter(
@@ -185,23 +204,39 @@ def unsubscribe(request, user_id):
 
 @login_required
 def subscriptions_list(request):
-    # Пользователи, на которых подписан текущий пользователь
-    subscriptions = Subscription.objects.filter(subscriber=request.user).select_related('target')
-    return render(request, 'core/subscriptions_list.html', {'subscriptions': subscriptions})
+    """Users the current user is subscribed to."""
+    subscriptions = Subscription.objects.filter(
+        subscriber=request.user
+    ).select_related('target')
+    return render(
+        request,
+        'core/subscriptions_list.html',
+        {'subscriptions': subscriptions}
+    )
 
 
 @login_required
 def subscribers_list(request):
-    # Пользователи, которые подписаны на текущего пользователя
-    subscribers = Subscription.objects.filter(target=request.user).select_related('subscriber')
-    return render(request, 'core/subscribers_list.html', {'subscribers': subscribers})
+    """Users subscribed to the current user."""
+    subscribers = Subscription.objects.filter(
+        target=request.user
+    ).select_related('subscriber')
+    return render(
+        request,
+        'core/subscribers_list.html',
+        {'subscribers': subscribers}
+    )
 
 
 @login_required
 def user_profile(request, user_id):
+    """Show a user's profile with posts and subscription stats."""
     user = get_object_or_404(User, id=user_id)
     posts = Post.objects.filter(author=user).order_by('-created_at')
-    is_subscribed = Subscription.objects.filter(subscriber=request.user, target=user).exists()
+    is_subscribed = Subscription.objects.filter(
+        subscriber=request.user,
+        target=user
+    ).exists()
 
     context = {
         'profile_user': user,
@@ -216,18 +251,25 @@ def user_profile(request, user_id):
 
 
 def explore_users(request):
-    # Показываем всех пользователей кроме текущего
+    """
+    Show all users except the current one.
+    For authenticated users, annotate each user with 'is_subscribed'.
+    """
     users = User.objects.all()
+
     if request.user.is_authenticated:
         users = users.exclude(id=request.user.id)
 
-    # Для авторизованных пользователей добавляем информацию о подписках
-    if request.user.is_authenticated:
-        subscribed_users = Subscription.objects.filter(
-            subscriber=request.user
-        ).values_list('target_id', flat=True)
+        # Pre-fetch the IDs of users the current user is subscribed to
+        subscribed_users = set(
+            Subscription.objects.filter(
+                subscriber=request.user
+            ).values_list('target_id', flat=True)
+        )
 
         for user in users:
             user.is_subscribed = user.id in subscribed_users
 
     return render(request, 'core/explore_users.html', {'users': users})
+
+    

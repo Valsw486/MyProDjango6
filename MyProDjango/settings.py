@@ -124,7 +124,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import os
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
@@ -133,6 +132,4 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 LOGIN_REDIRECT_URL = 'home'  # После входа перенаправлять на главную
 LOGOUT_REDIRECT_URL = 'home'  # После выхода перенаправлять на главную
 
-print("BASE_DIR:", BASE_DIR)
-print("Templates DIRS:", [os.path.join(BASE_DIR, 'templates')])
 
